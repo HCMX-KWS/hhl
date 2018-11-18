@@ -1,6 +1,3 @@
-'''
-这是一个训练ai控制横杆接住小球的游戏
-'''
 import pygame
 import random
 from pygame.locals import *
@@ -154,23 +151,21 @@ def train_neural_network(input_image):
     input_image_data = np.stack((image, image, image, image), axis=2)
     testcase = True;
     with tf.Session() as sess:
-        '''
-        if(testcase):
-            ckpt = tf.train.get_checkpoint_state('./')
-            if ckpt:
-                saver.restore(sess, './game')
-                testcase = False
-        else:
-        '''
-        sess.run(tf.initialize_all_variables())
-
         n = 0
         epsilon = INITIAL_EPSILON
 
+        sess.run(tf.initialize_all_variables())
+        checkpoint = tf.train.get_checkpoint_state("./")
+        if checkpoint and checkpoint.model_checkpoint_path:
+            saver.restore(sess, checkpoint.model_checkpoint_path)
+            print("Successfully loaded:", checkpoint.model_checkpoint_path)
+        else:
+            print("Could not find old network weights")
+
         while True:
             action_t = predict_action.eval(feed_dict={input_image: [input_image_data]})[0]
-
             argmax_t = np.zeros([output], dtype=np.int)
+
             if (random.random() <= INITIAL_EPSILON):
                 maxIndex = random.randrange(output)
             else:
@@ -215,21 +210,13 @@ def train_neural_network(input_image):
             n = n + 1
 
             if n % 10000 == 0:
-                saver.save(sess, './ game.cpk', global_step=n)  # 保存模型
+                saver.save(sess, './game.cpk', global_step=n)  # 保存模型
             if n % 1000 == 0:
                 print(n, "epsilon:", epsilon, " ", "action:", maxIndex, " ", "reward:", reward)
             if reward == 1:
                 print(n, "epsilon:", epsilon, " ", "action:", maxIndex, " ", "reward:", reward)
 
 
-def test(input_image):
-    predict_action = convolutional_neural_network(input_image)
-    with tf.Session as sess:
-        # 加载模型
-        ckpt = tf.train.get_checkpoint_state('./')
-        if ckpt and ckpt.model_check_point_path:
-            pass
-            # saver.restore(sess, ckpt.model_check_point_path)
 
 
 train_neural_network(input_image)
